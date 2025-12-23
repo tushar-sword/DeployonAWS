@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS EC2 Deployment Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(220, 20, 20, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(180, 0, 0, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, #ff0000, #cc0000, #ff3333);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            color: #cccccc;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        .glass-card {
+            background: rgba(30, 30, 30, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 0 20px rgba(255, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease backwards;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 0, 0, 0.4);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #ff0000, #cc0000);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-right: 15px;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #ff3333;
+            font-size: 1.8rem;
+            flex: 1;
+        }
+
+        h3 {
+            color: #ff6666;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        p, li {
+            color: #cccccc;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 4px solid #ff0000;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .code-block code {
+            color: #ff9999;
+            font-size: 0.95rem;
+        }
+
+        .highlight {
+            color: #ff3333;
+            font-weight: bold;
+        }
+
+        .warning {
+            background: rgba(255, 50, 0, 0.1);
+            border: 1px solid rgba(255, 50, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .warning::before {
+            content: '⚠️ ';
+            font-size: 1.2rem;
+        }
+
+        .success {
+            background: rgba(0, 255, 100, 0.1);
+            border: 1px solid rgba(0, 255, 100, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .success::before {
+            content: '✅ ';
+            font-size: 1.2rem;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff0000, #cc0000);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 10px 10px 10px 0;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6666);
+            width: 0%;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            border-top: 1px solid rgba(255, 0, 0, 0.1);
+            margin-top: 60px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            .glass-card {
+                padding: 20px;
+            }
+            .step-number {
+                width: 40px;
+                height: 40px;
+                line-height: 40px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Deploy Node.js on AWS EC2</h1>
+            <p class="subtitle">A Complete Step-by-Step Guide</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+        </header>
+
+        <!-- Step 1 -->
+        <div class="glass-card" style="animation-delay: 0.1s">
+            <div class="card-header">
+                <span class="step-number">1</span>
+                <h2>Prepare Your Project</h2>
+            </div>
+            <p>Before deploying to AWS, let's get your Node.js project ready.</p>
+            
+            <h3>Setup Your Node.js Application</h3>
+            <p>Create a project with this basic structure:</p>
+            <div class="code-block">
+                <code>your-project/<br>
+├── index.js<br>
+├── package.json<br>
+├── .env<br>
+├── .gitignore<br>
+└── README.md</code>
+            </div>
+
+            <h3>Configure Environment Variables</h3>
+            <div class="code-block">
+                <code>PORT=3000<br>
+NODE_ENV=production</code>
+            </div>
+
+            <div class="warning">
+                <strong>Important:</strong> Always add <span class="highlight">.env</span> to your <span class="highlight">.gitignore</span> file to keep sensitive data secure!
+            </div>
+
+            <h3>Push to GitHub</h3>
+            <div class="code-block">
+                <code>git init<br>
+git add .<br>
+git commit -m "Initial commit"<br>
+git push -u origin main</code>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="glass-card" style="animation-delay: 0.2s">
+            <div class="card-header">
+                <span class="step-number">2</span>
+                <h2>Setup IAM User</h2>
+            </div>
+            
+            <div class="success">
+                <strong>Why IAM User?</strong> Using IAM instead of root account is a security best practice. It provides:
+                <ul>
+                    <li>Limited permissions with guardrails</li>
+                    <li>Better access control and audit trails</li>
+                    <li>Reduced risk of accidental damage</li>
+                    <li>Principle of least privilege</li>
+                </ul>
+            </div>
+
+            <h3>Create IAM User</h3>
+            <p><strong>1.</strong> Go to AWS Console → IAM</p>
+            <p><strong>2.</strong> Click Users → Add User</p>
+            <p><strong>3.</strong> Enable AWS Management Console access</p>
+            <p><strong>4.</strong> Attach <span class="highlight">AmazonEC2FullAccess</span> policy</p>
+            <p><strong>5.</strong> Download credentials and save securely</p>
+            <p><strong>6.</strong> <span class="highlight">Log out from root and log in as IAM user</span></p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass-card" style="animation-delay: 0.3s">
+            <div class="card-header">
+                <span class="step-number">3</span>
+                <h2>Launch EC2 Instance</h2>
+            </div>
+            
+            <h3>Configuration Steps</h3>
+            <p><strong>1. Name your instance:</strong> my-nodejs-server</p>
+            
+            <p><strong>2. Choose AMI:</strong> Ubuntu Server 22.04 LTS</p>
+            
+            <p><strong>3. Instance Type:</strong> t2.micro (Free tier)</p>
+            
+            <p><strong>4. Key Pair (CRITICAL!):</strong></p>
+            <div class="warning">
+                Create and download <span class="highlight">demo.pem</span> - You cannot download it again! Store it securely.
+            </div>
+
+            <p><strong>5. Network Settings:</strong></p>
+            <ul>
+                <li>✅ Allow SSH traffic from Anywhere</li>
+                <li>✅ Allow HTTP traffic</li>
+                <li>✅ Allow HTTPS traffic</li>
+            </ul>
+
+            <p><strong>6. Launch Instance</strong> and wait for it to be <span class="highlight">Running</span> ✅</p>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="glass-card" style="animation-delay: 0.4s">
+            <div class="card-header">
+                <span class="step-number">4</span>
+                <h2>Connect via SSH</h2>
+            </div>
+            
+            <h3>Setup Key Permissions</h3>
+            <p>Move your key file to a secure location:</p>
+            <div class="code-block">
+                <code>mv ~/Downloads/demo.pem ~/.ssh/</code>
+            </div>
+
+            <p>Set read-only permissions (required for SSH):</p>
+            <div class="code-block">
+                <code>chmod 400 ~/.ssh/demo.pem</code>
+            </div>
+
+            <h3>Connect to Your Instance</h3>
+            <p>Get your instance's Public IPv4 address from EC2 dashboard, then:</p>
+            <div class="code-block">
+                <code>ssh -i ~/.ssh/demo.pem ubuntu@YOUR_INSTANCE_IP</code>
+            </div>
+
+            <p>Type <span class="highlight">yes</span> when prompted to accept the connection.</p>
+
+            <div class="success">
+                <strong>🎉 You're now connected to your Ubuntu server!</strong>
+            </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="glass-card" style="animation-delay: 0.5s">
+            <div class="card-header">
+                <span class="step-number">5</span>
+                <h2>Configure Server Environment</h2>
+            </div>
+            
+            <h3>Update System</h3>
+            <div class="code-block">
+                <code>sudo apt update<br>
+sudo apt upgrade -y</code>
+            </div>
+
+            <h3>Install Git</h3>
+            <div class="code-block">
+                <code>sudo apt install git -y<br>
+git --version</code>
+            </div>
+
+            <h3>Install Node.js & npm</h3>
+            <p>Using NodeSource PPA (Recommended):</p>
+            <div class="code-block">
+                <code>curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -<br>
+sudo apt install -y nodejs</code>
+            </div>
+
+            <p>Verify installation:</p>
+            <div class="code-block">
+                <code>node --version<br>
+npm --version</code>
+            </div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="glass-card" style="animation-delay: 0.6s">
+            <div class="card-header">
+                <span class="step-number">6</span>
+                <h2>Deploy Your Application</h2>
+            </div>
+            
+            <h3>Clone Your Repository</h3>
+            <div class="code-block">
+                <code>git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git<br>
+cd YOUR_REPO</code>
+            </div>
+
+            <h3>Create .env File</h3>
+            <div class="code-block">
+                <code>touch .env<br>
+vim .env</code>
+            </div>
+
+            <p><strong>Vim Quick Guide:</strong></p>
+            <ul>
+                <li>Press <span class="highlight">i</span> to enter INSERT mode</li>
+                <li>Paste your environment variables</li>
+                <li>Press <span class="highlight">ESC</span> to exit INSERT mode</li>
+                <li>Type <span class="highlight">:wq</span> and press Enter to save</li>
+            </ul>
+
+            <h3>Install Dependencies</h3>
+            <div class="code-block">
+                <code>npm install</code>
+            </div>
+
+            <h3>Start Your Application</h3>
+            <div class="code-block">
+                <code>npm start</code>
+            </div>
+        </div>
+
+        <!-- Step 7 -->
+        <div class="glass-card" style="animation-delay: 0.7s">
+            <div class="card-header">
+                <span class="step-number">7</span>
+                <h2>Configure Security Groups</h2>
+            </div>
+            
+            <div class="warning">
+                <strong>Why isn't my app accessible?</strong> By default, EC2 only exposes port 22 (SSH). You need to open your application port!
+            </div>
+
+            <h3>Open Application Port</h3>
+            <p><strong>1.</strong> Go to EC2 Dashboard → Select your instance</p>
+            <p><strong>2.</strong> Click Security tab → Click Security Group</p>
+            <p><strong>3.</strong> Edit inbound rules → Add rule</p>
+            <p><strong>4.</strong> Configure:</p>
+            <ul>
+                <li>Type: <span class="highlight">Custom TCP</span></li>
+                <li>Port range: <span class="highlight">3000</span></li>
+                <li>Source: <span class="highlight">0.0.0.0/0</span></li>
+            </ul>
+            <p><strong>5.</strong> Save rules</p>
+
+            <h3>Access Your Application</h3>
+            <p>Open your browser and navigate to:</p>
+            <div class="code-block">
+                <code>http://YOUR_INSTANCE_IP:3000</code>
+            </div>
+
+            <div class="success">
+                <strong>🎉 Congratulations! Your application is now LIVE on AWS!</strong>
+            </div>
+        </div>
+
+        <!-- Bonus Tips -->
+        <div class="glass-card" style="animation-delay: 0.8s">
+            <div class="card-header">
+                <span class="step-number">🎯</span>
+                <h2>Production Tips</h2>
+            </div>
+            
+            <h3>Keep App Running with PM2</h3>
+            <div class="code-block">
+                <code>sudo npm install -g pm2<br>
+pm2 start index.js --name "my-app"<br>
+pm2 startup<br>
+pm2 save</code>
+            </div>
+
+            <h3>Useful Resources</h3>
+            <a href="https://docs.aws.amazon.com/ec2/" class="btn" target="_blank">AWS EC2 Docs</a>
+            <a href="https://www.digitalocean.com/community/tutorials" class="btn" target="_blank">Digital Ocean Tutorials</a>
+            <a href="https://pm2.keymetrics.io/" class="btn" target="_blank">PM2 Documentation</a>
+        </div>
+
+        <footer>
+            <p>Made with ❤️ for developers learning AWS deployment by Tushar</p>
+            
+        </footer>
+    </div>
+
+    <script>
+        // Animate progress bar on scroll
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const height = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (scrolled / height) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        });
+
+        // Add smooth scroll animation
+        document.querySelectorAll('.glass-card').forEach((card, index) => {
+            card.style.animationDelay = `${0.1 * (index + 1)}s`;
+        });
+    </script>
+</body>
+</html>
