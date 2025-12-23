@@ -400,10 +400,4 @@ You've successfully deployed your first Node.js application on AWS EC2!
 
 ---
 
-## 📝 License
-
-MIT License - Feel free to use this guide for your projects!
-
----
-
 **Made with ❤️ for developers learning AWS deployment**
